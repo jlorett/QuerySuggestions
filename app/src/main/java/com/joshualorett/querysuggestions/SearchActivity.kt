@@ -1,5 +1,6 @@
 package com.joshualorett.querysuggestions
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
@@ -14,8 +15,12 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
+import android.view.inputmethod.InputMethodManager
 
 class SearchActivity : AppCompatActivity() {
+    private lateinit var searchBar: AppCompatAutoCompleteTextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -32,9 +37,12 @@ class SearchActivity : AppCompatActivity() {
             .of(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository()))
             .get(SearchViewModel::class.java)
 
-        val searchBar = findViewById<AppCompatAutoCompleteTextView>(R.id.search_bar)
+        searchBar = findViewById(R.id.search_bar)
         searchBar.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {}
+            override fun afterTextChanged(s: Editable?) {
+                adapter.updateSearchResults(emptyList())
+                adapter.notifyDataSetChanged()
+            }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
                 noSearchResults.visibility = View.GONE
@@ -47,6 +55,7 @@ class SearchActivity : AppCompatActivity() {
         searchBar.setOnEditorActionListener { v, actionId, event ->
             if(actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchViewModel.search(searchBar.text.toString())
+                closeKeyboard()
                 return@setOnEditorActionListener true
             }
             return@setOnEditorActionListener false
@@ -67,5 +76,10 @@ class SearchActivity : AppCompatActivity() {
             adapter.updateSearchResults(results)
             adapter.notifyDataSetChanged()
         })
+    }
+
+    private fun closeKeyboard() {
+        val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputManager.hideSoftInputFromWindow(searchBar.windowToken, HIDE_NOT_ALWAYS)
     }
 }
