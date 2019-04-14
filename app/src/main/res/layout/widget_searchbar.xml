@@ -16,5 +16,6 @@
             android:hint="@string/query_hint"
             android:background="@color/searchBarBackground"
             android:inputType="text"
-            android:maxLines="1"/>
+            android:maxLines="1"
+            android:imeOptions="actionSearch"/>
 </LinearLayout>
