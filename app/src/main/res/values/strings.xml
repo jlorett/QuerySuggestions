@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">QuerySuggestions</string>
+    <string name="query_hint">Search</string>
+</resources>
