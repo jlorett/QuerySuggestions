@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
 import android.view.inputmethod.InputMethodManager
+import androidx.appcompat.widget.AppCompatImageButton
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var searchBar: AppCompatAutoCompleteTextView
@@ -26,7 +27,9 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val loadingIndicator = findViewById<ProgressBar>(R.id.loading_indicator)
+
         val noSearchResults = findViewById<TextView>(R.id.no_search_results)
+
         val searchResults = findViewById<RecyclerView>(R.id.search_results)
         searchResults.layoutManager = LinearLayoutManager(this)
         searchResults.setHasFixedSize(true)
@@ -37,6 +40,16 @@ class SearchActivity : AppCompatActivity() {
             .of(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository()))
             .get(SearchViewModel::class.java)
 
+        val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)
+        clearQuery.setOnClickListener {
+            searchViewModel.cancelSearch()
+            searchBar.setText("")
+            adapter.updateSearchResults(emptyList())
+            adapter.notifyDataSetChanged()
+            loadingIndicator.visibility = View.GONE
+            noSearchResults.visibility = View.GONE
+        }
+
         searchBar = findViewById(R.id.search_bar)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -44,16 +57,15 @@ class SearchActivity : AppCompatActivity() {
                 adapter.notifyDataSetChanged()
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                noSearchResults.visibility = View.GONE
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                searchViewModel.onQueryUpdated(s?.toString() ?: "")
+                searchViewModel.updateQuery(s?.toString() ?: "")
             }
         })
         searchBar.setOnEditorActionListener { v, actionId, event ->
             if(actionId == EditorInfo.IME_ACTION_SEARCH) {
+                noSearchResults.visibility = View.GONE
                 searchViewModel.search(searchBar.text.toString())
                 closeKeyboard()
                 return@setOnEditorActionListener true
@@ -72,7 +84,7 @@ class SearchActivity : AppCompatActivity() {
         })
 
         searchViewModel.results.observe(this, Observer { results ->
-            noSearchResults.visibility = if(results.isEmpty()) View.VISIBLE else View.GONE
+            noSearchResults.visibility = if(results.isEmpty() && searchBar.text.isNotEmpty()) View.VISIBLE else View.GONE
             adapter.updateSearchResults(results)
             adapter.notifyDataSetChanged()
         })

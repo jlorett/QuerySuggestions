@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
@@ -43,7 +44,7 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
             }
     }
 
-    override fun onQueryUpdated(query: String) {
+    override fun updateQuery(query: String) {
         if(query.isNotEmpty()) {
             this.query.onNext(query)
         }
@@ -63,10 +64,26 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
         }
     }
 
+    override fun cancelSearch() {
+        searchDisposable?.let {
+            if(!it.isDisposed) {
+                it.dispose()
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
-        suggestionDisposable?.dispose()
-        searchDisposable?.dispose()
+        suggestionDisposable?.let {
+            if(!it.isDisposed) {
+                it.dispose()
+            }
+        }
+        searchDisposable?.let {
+            if(!it.isDisposed) {
+                it.dispose()
+            }
+        }
     }
 
     class SearchViewModelFactory(private val mockRepository: MockRepository) : ViewModelProvider.Factory {
@@ -80,6 +97,7 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
 }
 
 interface SearchEvents {
-    fun onQueryUpdated(query: String)
+    fun updateQuery(query: String)
     fun search(query: String)
+    fun cancelSearch()
 }
