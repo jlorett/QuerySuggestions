@@ -1,6 +1,7 @@
 package com.joshualorett.querysuggestions
 
 import io.reactivex.Observable
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 
@@ -13,7 +14,7 @@ interface MockRepository {
     fun getSuggestions(query: String) : Observable<List<String>>
 }
 
-class LocalMockRepository : MockRepository {
+class LocalMockRepository(private val maxNumberSuggestions: Int = 5) : MockRepository {
     private val data = listOf(
         "aardvark",
         "albatross",
@@ -256,7 +257,7 @@ class LocalMockRepository : MockRepository {
         if(query.isEmpty()) {
             return Observable.fromCallable { emptyList<String>() }
         }
-        return Observable.fromCallable { data.filter { item -> item.contains(query) } }
+        return Observable.fromCallable { data.takeUntil(maxNumberSuggestions) { item -> item.contains(query) } }
     }
 
     override fun search(query: String) : Observable<List<String>> {
@@ -267,3 +268,21 @@ class LocalMockRepository : MockRepository {
     }
 }
 
+/***
+ * Returns the first [n] elements of a list containing only elements matching the given [predicate].
+ * @throws IllegalArgumentException if [n] is less than zero.
+ */
+inline fun <T> Iterable<T>.takeUntil(n: Int, predicate: (T) -> Boolean) : List<T> {
+    require(n >= 0) { "Requested element count $n is less than zero." }
+    if (n == 0) return emptyList()
+    val destination = ArrayList<T>()
+    for (element in this) {
+        if (predicate(element)) {
+            destination.add(element)
+        }
+        if(destination.size == n) {
+            break
+        }
+    }
+    return destination
+}
