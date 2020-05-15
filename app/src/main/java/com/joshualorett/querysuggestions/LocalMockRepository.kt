@@ -1,7 +1,6 @@
 package com.joshualorett.querysuggestions
 
 import io.reactivex.Observable
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 
@@ -275,7 +274,7 @@ class LocalMockRepository(private val maxNumberSuggestions: Int = 5) : MockRepos
 inline fun <T> Iterable<T>.takeUntil(n: Int, predicate: (T) -> Boolean) : List<T> {
     require(n >= 0) { "Requested element count $n is less than zero." }
     if (n == 0) return emptyList()
-    val destination = ArrayList<T>()
+    val destination = mutableListOf<T>()
     for (element in this) {
         if (predicate(element)) {
             destination.add(element)
