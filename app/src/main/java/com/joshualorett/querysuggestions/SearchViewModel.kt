@@ -4,10 +4,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 
@@ -16,8 +17,7 @@ import java.util.concurrent.TimeUnit
  * Created by Joshua on 4/13/2019.
  */
 class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(), SearchEvents {
-    private var suggestionDisposable: Disposable? = null
-    private var searchDisposable: Disposable? = null
+    private val compositeDisposable = CompositeDisposable()
 
     private val _results = MutableLiveData<List<String>>()
     val results : LiveData<List<String>> = _results
@@ -30,60 +30,57 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
 
     private val query = PublishSubject.create<String>()
 
+    private val searchQuery = BehaviorSubject.create<String>()
+
+    private val suggestionDisposable = query
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribeOn(Schedulers.io())
+        .debounce(300, TimeUnit.MILLISECONDS)
+        .distinctUntilChanged()
+        .switchMap { query ->
+            mockRepository.getSuggestions(query)
+        }
+        .subscribe {  results ->
+            _suggestions.postValue(results)
+        }
+
+    private val searchDisposable = searchQuery
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribeOn(Schedulers.io())
+        .switchMap { query ->
+            _suggestions.postValue(emptyList())
+            return@switchMap if(query.isEmpty()) {
+                _loading.postValue(false)
+                Observable.fromCallable<List<String>> { emptyList() }
+            } else {
+                _loading.postValue(true)
+                mockRepository.search(query)
+            }
+        }
+        .subscribe { results ->
+            _loading.postValue(false)
+            _results.postValue(results)
+        }
+
     init {
-        suggestionDisposable = query
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribeOn(Schedulers.io())
-            .debounce(300, TimeUnit.MILLISECONDS)
-            .distinctUntilChanged()
-            .switchMap { query ->
-                mockRepository.getSuggestions(query)
-            }
-            .subscribe {  results ->
-                _suggestions.postValue(results)
-            }
+        compositeDisposable.addAll(suggestionDisposable, searchDisposable)
     }
 
     override fun updateQuery(query: String) {
-        if(query.isNotEmpty()) {
-            this.query.onNext(query)
-        }
+        this.query.onNext(query)
     }
 
     override fun search(query: String) {
-        if(query.isNotEmpty()) {
-            _suggestions.postValue(emptyList())
-            _loading.postValue(true)
-            searchDisposable = mockRepository.search(query)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe { results ->
-                    _loading.postValue(false)
-                    _results.postValue(results)
-                }
-        }
+        searchQuery.onNext(query)
     }
 
     override fun cancelSearch() {
-        searchDisposable?.let {
-            if(!it.isDisposed) {
-                it.dispose()
-            }
-        }
+        searchQuery.onNext("")
     }
 
     override fun onCleared() {
         super.onCleared()
-        suggestionDisposable?.let {
-            if(!it.isDisposed) {
-                it.dispose()
-            }
-        }
-        searchDisposable?.let {
-            if(!it.isDisposed) {
-                it.dispose()
-            }
-        }
+        compositeDisposable.dispose()
     }
 
     class SearchViewModelFactory(private val mockRepository: MockRepository) : ViewModelProvider.Factory {

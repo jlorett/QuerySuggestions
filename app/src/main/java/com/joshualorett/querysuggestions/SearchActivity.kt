@@ -52,8 +52,6 @@ class SearchActivity : AppCompatActivity() {
         searchBar = findViewById(R.id.search_bar)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                adapter.updateSearchResults(emptyList())
-                adapter.notifyDataSetChanged()
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
