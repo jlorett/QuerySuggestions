@@ -12,12 +12,12 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.AppCompatImageButton
+import androidx.lifecycle.ViewModelProvider
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var searchBar: AppCompatAutoCompleteTextView
@@ -36,8 +36,7 @@ class SearchActivity : AppCompatActivity() {
         val adapter = SearchResultAdapter()
         searchResults.adapter = adapter
 
-        val searchViewModel = ViewModelProviders
-            .of(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository()))
+        val searchViewModel = ViewModelProvider(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository()))
             .get(SearchViewModel::class.java)
 
         val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)
