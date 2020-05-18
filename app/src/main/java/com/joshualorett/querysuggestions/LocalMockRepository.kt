@@ -13,7 +13,7 @@ interface MockRepository {
     fun getSuggestions(query: String) : Observable<List<String>>
 }
 
-class LocalMockRepository(private val maxNumberSuggestions: Int = 0,
+class LocalMockRepository(private val maxNumberSuggestions: Int = 3,
 private val searchDelay: Long = 0) : MockRepository {
     private val data = listOf(
         "aardvark",
@@ -277,11 +277,11 @@ inline fun <T> Iterable<T>.takeUntil(n: Int, predicate: (T) -> Boolean) : List<T
     if (n == 0) return emptyList()
     val destination = mutableListOf<T>()
     for (element in this) {
-        if (predicate(element)) {
-            destination.add(element)
-        }
         if(destination.size == n) {
             break
+        }
+        if (predicate(element)) {
+            destination.add(element)
         }
     }
     return destination
