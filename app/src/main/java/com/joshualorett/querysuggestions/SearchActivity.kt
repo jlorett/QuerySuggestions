@@ -36,7 +36,7 @@ class SearchActivity : AppCompatActivity() {
         val adapter = SearchResultAdapter()
         searchResults.adapter = adapter
 
-        val searchViewModel = ViewModelProvider(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository()))
+        val searchViewModel = ViewModelProvider(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository(5, 3)))
             .get(SearchViewModel::class.java)
 
         val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)

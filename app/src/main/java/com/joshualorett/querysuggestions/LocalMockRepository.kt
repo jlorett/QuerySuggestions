@@ -13,7 +13,8 @@ interface MockRepository {
     fun getSuggestions(query: String) : Observable<List<String>>
 }
 
-class LocalMockRepository(private val maxNumberSuggestions: Int = 5) : MockRepository {
+class LocalMockRepository(private val maxNumberSuggestions: Int = 0,
+private val searchDelay: Long = 0) : MockRepository {
     private val data = listOf(
         "aardvark",
         "albatross",
@@ -263,7 +264,7 @@ class LocalMockRepository(private val maxNumberSuggestions: Int = 5) : MockRepos
         if(query.isEmpty()) {
             return Observable.fromCallable { emptyList<String>() }
         }
-        return Observable.fromCallable { data.filter { item -> item.contains(query) } }.delay(3, TimeUnit.SECONDS)
+        return Observable.fromCallable { data.filter { item -> item.contains(query) } }.delay(searchDelay, TimeUnit.SECONDS)
     }
 }
 
