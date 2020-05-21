@@ -1,23 +1,23 @@
 package com.joshualorett.querysuggestions
 
 import android.content.Context
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
 import android.widget.ArrayAdapter
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
+import androidx.appcompat.widget.AppCompatImageButton
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
-import android.view.inputmethod.InputMethodManager
-import androidx.appcompat.widget.AppCompatImageButton
-import androidx.lifecycle.ViewModelProvider
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var searchBar: AppCompatAutoCompleteTextView
@@ -36,7 +36,7 @@ class SearchActivity : AppCompatActivity() {
         val adapter = SearchResultAdapter()
         searchResults.adapter = adapter
 
-        val searchViewModel = ViewModelProvider(this, SearchViewModel.SearchViewModelFactory(LocalMockRepository(5, 3)))
+        val searchViewModel = ViewModelProvider(this, SearchViewModel.SearchViewModelFactory(AppSchedulerProvider(), LocalMockRepository(5, 3)))
             .get(SearchViewModel::class.java)
 
         val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)

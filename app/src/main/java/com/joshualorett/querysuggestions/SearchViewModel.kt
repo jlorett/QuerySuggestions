@@ -5,9 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
@@ -16,7 +14,9 @@ import java.util.concurrent.TimeUnit
  * ViewModel to communicate between the search ui and repository.
  * Created by Joshua on 4/13/2019.
  */
-class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(), SearchEvents {
+class SearchViewModel(schedulerProvider: SchedulerProvider,
+                      private val mockRepository: MockRepository,
+                      debounceTime: Long) : ViewModel(), SearchEvents {
     private val compositeDisposable = CompositeDisposable()
 
     private val _results = MutableLiveData<List<String>>()
@@ -32,37 +32,36 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
 
     private val searchQuery = BehaviorSubject.create<String>()
 
-    private val suggestionDisposable = query
-        .observeOn(AndroidSchedulers.mainThread())
-        .subscribeOn(Schedulers.io())
-        .debounce(300, TimeUnit.MILLISECONDS)
-        .distinctUntilChanged()
-        .switchMap { query ->
-            mockRepository.getSuggestions(query)
-        }
-        .subscribe {  results ->
-            _suggestions.postValue(results)
-        }
-
-    private val searchDisposable = searchQuery
-        .observeOn(AndroidSchedulers.mainThread())
-        .subscribeOn(Schedulers.io())
-        .switchMap { query ->
-            _suggestions.postValue(emptyList())
-            return@switchMap if(query.isEmpty()) {
-                _loading.postValue(false)
-                Observable.fromCallable<List<String>> { emptyList() }
-            } else {
-                _loading.postValue(true)
-                mockRepository.search(query)
-            }
-        }
-        .subscribe { results ->
-            _loading.postValue(false)
-            _results.postValue(results)
-        }
-
     init {
+        val suggestionDisposable = query
+            .observeOn(schedulerProvider.ui)
+            .subscribeOn(schedulerProvider.io)
+            .distinctUntilChanged()
+            .debounce(debounceTime, TimeUnit.MILLISECONDS, schedulerProvider.ui)
+            .switchMap { query ->
+                mockRepository.getSuggestions(query)
+            }
+            .subscribe {  results ->
+                _suggestions.postValue(results)
+            }
+
+        val searchDisposable = searchQuery
+            .observeOn(schedulerProvider.ui)
+            .subscribeOn(schedulerProvider.io)
+            .switchMap { query ->
+                _suggestions.postValue(emptyList())
+                return@switchMap if(query.isEmpty()) {
+                    _loading.postValue(false)
+                    Observable.fromCallable<List<String>> { emptyList() }
+                } else {
+                    _loading.postValue(true)
+                    mockRepository.search(query)
+                }
+            }
+            .subscribe { results ->
+                _loading.postValue(false)
+                _results.postValue(results)
+            }
         compositeDisposable.addAll(suggestionDisposable, searchDisposable)
     }
 
@@ -83,10 +82,12 @@ class SearchViewModel(private val mockRepository: MockRepository) : ViewModel(),
         compositeDisposable.dispose()
     }
 
-    class SearchViewModelFactory(private val mockRepository: MockRepository) : ViewModelProvider.Factory {
+    class SearchViewModelFactory(private val schedulerProvider: SchedulerProvider,
+                                 private val mockRepository: MockRepository,
+                                 private val debounceTime: Long = 300L) : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
-                return SearchViewModel(mockRepository) as T
+                return SearchViewModel(schedulerProvider, mockRepository, debounceTime) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class.")
         }
