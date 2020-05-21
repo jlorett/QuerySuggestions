@@ -15,8 +15,8 @@ class SearchViewModelTest {
     @get:Rule
     val test = InstantTaskExecutorRule()
 
-    private val mockRepo = LocalMockRepository(3, 0)
     private val testSchedulerProvider = TestSchedulerProvider()
+    private val mockRepo = LocalMockRepository(testSchedulerProvider, 3, 0)
     private lateinit var viewModel: SearchViewModel
 
     @Before

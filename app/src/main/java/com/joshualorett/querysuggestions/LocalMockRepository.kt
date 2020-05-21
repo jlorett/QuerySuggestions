@@ -1,6 +1,8 @@
 package com.joshualorett.querysuggestions
 
 import io.reactivex.Observable
+import io.reactivex.Scheduler
+import io.reactivex.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
 
 
@@ -13,8 +15,9 @@ interface MockRepository {
     fun getSuggestions(query: String) : Observable<List<String>>
 }
 
-class LocalMockRepository(private val maxNumberSuggestions: Int = 3,
-private val searchDelay: Long = 0) : MockRepository {
+class LocalMockRepository(private val schedulerProvider: SchedulerProvider,
+                          private val maxNumberSuggestions: Int = 3,
+                          private val searchDelay: Long = 0) : MockRepository {
     private val data = listOf(
         "aardvark",
         "albatross",
@@ -264,7 +267,7 @@ private val searchDelay: Long = 0) : MockRepository {
         if(query.isEmpty()) {
             return Observable.fromCallable { emptyList<String>() }
         }
-        return Observable.fromCallable { data.filter { item -> item.contains(query) } }.delay(searchDelay, TimeUnit.SECONDS)
+        return Observable.fromCallable { data.filter { item -> item.contains(query) } }.delay(searchDelay, TimeUnit.SECONDS, schedulerProvider.io)
     }
 }
 

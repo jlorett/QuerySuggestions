@@ -1,13 +1,11 @@
 package com.joshualorett.querysuggestions
 
 import io.reactivex.observers.TestObserver
-import io.reactivex.schedulers.TestScheduler
 import org.junit.Test
 
 import org.junit.Assert.*
 import org.junit.Before
 import java.lang.IllegalArgumentException
-import java.util.concurrent.TimeUnit
 
 /**
  * Tests the [LocalMockRepository].
@@ -15,11 +13,11 @@ import java.util.concurrent.TimeUnit
  */
 class LocalMockRepositoryTest {
     private val data = listOf("blah", "meh", "woot")
-    private lateinit var testScheduler: TestScheduler
+    private lateinit var testSchedulerProvider: TestSchedulerProvider
 
     @Before
     fun setup() {
-        testScheduler = TestScheduler()
+        testSchedulerProvider = TestSchedulerProvider()
     }
 
     @Test (expected = IllegalArgumentException::class)
@@ -59,52 +57,44 @@ class LocalMockRepositoryTest {
 
     @Test
     fun returnsSuggestions() {
-        val testScheduler = TestScheduler()
-        val repo = LocalMockRepository()
+        val repo = LocalMockRepository(testSchedulerProvider, 3, 0)
         val suggestions: TestObserver<List<String>> = repo.getSuggestions("antelope")
-            .subscribeOn(testScheduler)
-            .observeOn(testScheduler)
+            .subscribeOn(testSchedulerProvider.ui)
+            .observeOn(testSchedulerProvider.io)
             .test()
-        testScheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS)
         suggestions.assertValue(listOf("antelope"))
         suggestions.dispose()
     }
 
     @Test
     fun returnsMaxSuggestions() {
-        val testScheduler = TestScheduler()
-        val repo = LocalMockRepository(3, 0)
+        val repo = LocalMockRepository(testSchedulerProvider, 3, 0)
         val suggestions: TestObserver<List<String>> = repo.getSuggestions("a")
-            .subscribeOn(testScheduler)
-            .observeOn(testScheduler)
+            .subscribeOn(testSchedulerProvider.ui)
+            .observeOn(testSchedulerProvider.io)
             .test()
-        testScheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS)
         assertEquals(3, suggestions.values()[0].size)
         suggestions.dispose()
     }
 
     @Test
     fun searchReturns() {
-        val testScheduler = TestScheduler()
-        val repo = LocalMockRepository(3, 0)
+        val repo = LocalMockRepository(testSchedulerProvider, 3, 0)
         val results: TestObserver<List<String>> = repo.search("antelope")
-            .subscribeOn(testScheduler)
-            .observeOn(testScheduler)
+            .subscribeOn(testSchedulerProvider.ui)
+            .observeOn(testSchedulerProvider.io)
             .test()
-        testScheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS)
         results.assertValue(listOf("antelope"))
         results.dispose()
     }
 
     @Test
     fun returnsEmptyList() {
-        val testScheduler = TestScheduler()
-        val repo = LocalMockRepository(30, 0)
+        val repo = LocalMockRepository(testSchedulerProvider, 30, 0)
         val results: TestObserver<List<String>> = repo.search("")
-            .subscribeOn(testScheduler)
-            .observeOn(testScheduler)
+            .subscribeOn(testSchedulerProvider.ui)
+            .observeOn(testSchedulerProvider.io)
             .test()
-        testScheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS)
         results.assertValue(emptyList())
         results.dispose()
     }
