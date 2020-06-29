@@ -1,8 +1,6 @@
 package com.joshualorett.querysuggestions
 
 import io.reactivex.Observable
-import io.reactivex.Scheduler
-import io.reactivex.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
 
 
@@ -11,8 +9,8 @@ import java.util.concurrent.TimeUnit
  * Created by Joshua on 4/13/2019.
  */
 interface MockRepository {
-    fun search(query: String) : Observable<List<String>>
-    fun getSuggestions(query: String) : Observable<List<String>>
+    fun search(query: String) : Observable<Resource<List<String>>>
+    fun getSuggestions(query: String) : Observable<Resource<List<String>>>
 }
 
 class LocalMockRepository(private val schedulerProvider: SchedulerProvider,
@@ -256,18 +254,21 @@ class LocalMockRepository(private val schedulerProvider: SchedulerProvider,
         "zebra"
     )
 
-    override fun getSuggestions(query: String): Observable<List<String>> {
+    override fun getSuggestions(query: String): Observable<Resource<List<String>>> {
         if(query.isEmpty()) {
-            return Observable.fromCallable { emptyList<String>() }
+            return Observable.fromCallable { Resource.Success(emptyList()) }
         }
-        return Observable.fromCallable { data.takeUntil(maxNumberSuggestions) { item -> item.contains(query) } }
+        return Observable.fromCallable { Resource.Success(data.takeUntil(maxNumberSuggestions) { item -> item.contains(query) }) }
     }
 
-    override fun search(query: String) : Observable<List<String>> {
+    override fun search(query: String) : Observable<Resource<List<String>>> {
         if(query.isEmpty()) {
-            return Observable.fromCallable { emptyList<String>() }
+            return Observable.fromCallable { Resource.Success(emptyList()) }
         }
-        return Observable.fromCallable { data.filter { item -> item.contains(query) } }.delay(searchDelay, TimeUnit.SECONDS, schedulerProvider.io)
+        return Observable.fromCallable {
+            val results: Resource<List<String>> = Resource.Success(data.filter { item -> item.contains(query) })
+            results
+        }.delay(searchDelay, TimeUnit.SECONDS, schedulerProvider.io)
     }
 }
 
