@@ -256,14 +256,14 @@ class LocalMockRepository(private val schedulerProvider: SchedulerProvider,
 
     override fun getSuggestions(query: String): Observable<Resource<List<String>>> {
         if(query.isEmpty()) {
-            return Observable.fromCallable { Resource.Success(emptyList()) }
+            return Observable.fromCallable { Resource.Success(emptyList<String>()) }
         }
         return Observable.fromCallable { Resource.Success(data.takeUntil(maxNumberSuggestions) { item -> item.contains(query) }) }
     }
 
     override fun search(query: String) : Observable<Resource<List<String>>> {
         if(query.isEmpty()) {
-            return Observable.fromCallable { Resource.Success(emptyList()) }
+            return Observable.fromCallable { Resource.Success(emptyList<String>()) }
         }
         return Observable.fromCallable {
             val results: Resource<List<String>> = Resource.Success(data.filter { item -> item.contains(query) })
