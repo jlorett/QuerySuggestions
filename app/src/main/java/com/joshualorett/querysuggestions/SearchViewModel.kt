@@ -1,7 +1,5 @@
 package com.joshualorett.querysuggestions
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import io.reactivex.Observable
@@ -19,14 +17,11 @@ class SearchViewModel(schedulerProvider: SchedulerProvider,
                       debounceTime: Long) : ViewModel(), SearchEvents {
     private val compositeDisposable = CompositeDisposable()
 
-    private val _results = MutableLiveData<List<String>>()
-    val results : LiveData<List<String>> = _results
+    private val _results = BehaviorSubject.create<Resource<List<String>>>()
+    val results : Observable<Resource<List<String>>> = _results.hide()
 
-    private val _suggestions = MutableLiveData<List<String>>()
-    val suggestions : LiveData<List<String>> = _suggestions
-
-    private val _loading = MutableLiveData<Boolean>()
-    val loading: LiveData<Boolean> = _loading
+    private val _suggestions = BehaviorSubject.create<Resource<List<String>>>()
+    val suggestions: Observable<Resource<List<String>>> = _suggestions.hide()
 
     private val query = PublishSubject.create<String>()
 
@@ -39,28 +34,26 @@ class SearchViewModel(schedulerProvider: SchedulerProvider,
             .distinctUntilChanged()
             .debounce(debounceTime, TimeUnit.MILLISECONDS, schedulerProvider.ui)
             .switchMap { query ->
+                _suggestions.onNext(Resource.Loading)
                 mockRepository.getSuggestions(query)
             }
             .subscribe {  results ->
-                _suggestions.postValue(results)
+                _suggestions.onNext(results)
             }
 
         val searchDisposable = searchQuery
             .observeOn(schedulerProvider.ui)
             .subscribeOn(schedulerProvider.io)
             .switchMap { query ->
-                _suggestions.postValue(emptyList())
                 return@switchMap if(query.isEmpty()) {
-                    _loading.postValue(false)
-                    Observable.fromCallable<List<String>> { emptyList() }
+                    Observable.fromCallable { Resource.Success(emptyList<String>()) }
                 } else {
-                    _loading.postValue(true)
+                    _results.onNext(Resource.Loading)
                     mockRepository.search(query)
                 }
             }
             .subscribe { results ->
-                _loading.postValue(false)
-                _results.postValue(results)
+                _results.onNext(results)
             }
         compositeDisposable.addAll(suggestionDisposable, searchDisposable)
     }
