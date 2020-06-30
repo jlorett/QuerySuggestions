@@ -14,34 +14,29 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatImageButton
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import io.reactivex.disposables.CompositeDisposable
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var searchBar: AppCompatAutoCompleteTextView
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         val loadingIndicator = findViewById<ProgressBar>(R.id.loading_indicator)
-
         val noSearchResults = findViewById<TextView>(R.id.no_search_results)
-
         val searchResults = findViewById<RecyclerView>(R.id.search_results)
         searchResults.layoutManager = LinearLayoutManager(this)
         searchResults.setHasFixedSize(true)
         val adapter = SearchResultAdapter()
         searchResults.adapter = adapter
-
         val schedulerProvider = AppSchedulerProvider()
-
         val searchViewModel = ViewModelProvider(this,
             SearchViewModel.SearchViewModelFactory(schedulerProvider, LocalMockRepository(schedulerProvider, 5, 3)))
             .get(SearchViewModel::class.java)
-
         val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)
         clearQuery.setOnClickListener {
             searchViewModel.cancelSearch()
@@ -51,7 +46,6 @@ class SearchActivity : AppCompatActivity() {
             loadingIndicator.visibility = View.GONE
             noSearchResults.visibility = View.GONE
         }
-
         searchBar = findViewById(R.id.search_bar)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -72,26 +66,46 @@ class SearchActivity : AppCompatActivity() {
             }
             return@setOnEditorActionListener false
         }
-
-        searchViewModel.suggestions.observe(this, Observer { suggestions ->
-            val suggestionAdapter = ArrayAdapter<String>(this, android.R.layout.simple_selectable_list_item, suggestions)
-            searchBar.setAdapter(suggestionAdapter)
-            suggestionAdapter.notifyDataSetChanged()
-        })
-
-        searchViewModel.loading.observe(this,  Observer { loading ->
-            loadingIndicator.visibility = if(loading) View.VISIBLE else View.GONE
-        })
-
-        searchViewModel.results.observe(this, Observer { results ->
-            noSearchResults.visibility = if(results.isEmpty() && searchBar.text.isNotEmpty()) View.VISIBLE else View.GONE
-            adapter.updateSearchResults(results)
-            adapter.notifyDataSetChanged()
-        })
+        val suggestionDisposable = searchViewModel.suggestions
+            .observeOn(schedulerProvider.ui)
+            .subscribeOn(schedulerProvider.ui)
+            .subscribe{ suggestions ->
+            when(suggestions) {
+                is Resource.Success -> {
+                    val data = suggestions.data
+                    val suggestionAdapter = ArrayAdapter(this, android.R.layout.simple_selectable_list_item, data)
+                    searchBar.setAdapter(suggestionAdapter)
+                    suggestionAdapter.notifyDataSetChanged()
+                }
+            }
+        }
+        val resultDisposable = searchViewModel.results
+            .observeOn(schedulerProvider.ui)
+            .subscribeOn(schedulerProvider.ui)
+            .subscribe { results ->
+            when(results) {
+                is Resource.Success -> {
+                    loadingIndicator.visibility = View.GONE
+                    val data = results.data
+                    noSearchResults.visibility = if(data.isEmpty() && searchBar.text.isNotEmpty()) View.VISIBLE else View.GONE
+                    adapter.updateSearchResults(data)
+                    adapter.notifyDataSetChanged()
+                }
+                is Resource.Loading -> {
+                    loadingIndicator.visibility = View.VISIBLE
+                }
+            }
+        }
+        compositeDisposable.addAll(suggestionDisposable, resultDisposable)
     }
 
     private fun closeKeyboard() {
         val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         inputManager.hideSoftInputFromWindow(searchBar.windowToken, HIDE_NOT_ALWAYS)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.clear()
     }
 }
