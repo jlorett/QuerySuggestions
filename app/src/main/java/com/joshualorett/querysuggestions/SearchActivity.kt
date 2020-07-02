@@ -39,10 +39,8 @@ class SearchActivity : AppCompatActivity() {
             .get(SearchViewModel::class.java)
         val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)
         clearQuery.setOnClickListener {
-            searchViewModel.cancelSearch()
+            searchViewModel.clear()
             searchBar.setText("")
-            adapter.updateSearchResults(emptyList())
-            adapter.notifyDataSetChanged()
             loadingIndicator.visibility = View.GONE
             noSearchResults.visibility = View.GONE
         }
@@ -66,6 +64,8 @@ class SearchActivity : AppCompatActivity() {
             }
             return@setOnEditorActionListener false
         }
+        val suggestionAdapter = ArrayAdapter(this, android.R.layout.simple_selectable_list_item, emptyList<String>())
+        searchBar.setAdapter(suggestionAdapter)
         val suggestionDisposable = searchViewModel.suggestions
             .observeOn(schedulerProvider.ui)
             .subscribeOn(schedulerProvider.ui)
@@ -73,8 +73,8 @@ class SearchActivity : AppCompatActivity() {
             when(suggestions) {
                 is Resource.Success -> {
                     val data = suggestions.data
-                    val suggestionAdapter = ArrayAdapter(this, android.R.layout.simple_selectable_list_item, data)
-                    searchBar.setAdapter(suggestionAdapter)
+                    suggestionAdapter.clear()
+                    suggestionAdapter.addAll(data)
                     suggestionAdapter.notifyDataSetChanged()
                 }
             }
