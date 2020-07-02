@@ -66,7 +66,8 @@ class SearchViewModel(schedulerProvider: SchedulerProvider,
         searchQuery.onNext(query)
     }
 
-    override fun cancelSearch() {
+    override fun clear() {
+        query.onNext("")
         searchQuery.onNext("")
     }
 
@@ -90,5 +91,5 @@ class SearchViewModel(schedulerProvider: SchedulerProvider,
 interface SearchEvents {
     fun updateQuery(query: String)
     fun search(query: String)
-    fun cancelSearch()
+    fun clear()
 }
