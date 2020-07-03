@@ -9,26 +9,19 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodManager.HIDE_NOT_ALWAYS
 import android.widget.ArrayAdapter
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.AppCompatAutoCompleteTextView
-import androidx.appcompat.widget.AppCompatImageButton
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.disposables.CompositeDisposable
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.widget_searchbar.*
 
 class SearchActivity : AppCompatActivity() {
-    private lateinit var searchBar: AppCompatAutoCompleteTextView
     private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val loadingIndicator = findViewById<ProgressBar>(R.id.loading_indicator)
-        val noSearchResults = findViewById<TextView>(R.id.no_search_results)
-        val searchResults = findViewById<RecyclerView>(R.id.search_results)
         searchResults.layoutManager = LinearLayoutManager(this)
         searchResults.setHasFixedSize(true)
         val adapter = SearchResultAdapter()
@@ -37,14 +30,12 @@ class SearchActivity : AppCompatActivity() {
         val searchViewModel = ViewModelProvider(this,
             SearchViewModel.SearchViewModelFactory(schedulerProvider, LocalMockRepository(schedulerProvider, 5, 3)))
             .get(SearchViewModel::class.java)
-        val clearQuery = findViewById<AppCompatImageButton>(R.id.clear_query)
         clearQuery.setOnClickListener {
             searchViewModel.clear()
             searchBar.setText("")
             loadingIndicator.visibility = View.GONE
             noSearchResults.visibility = View.GONE
         }
-        searchBar = findViewById(R.id.search_bar)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
             }
