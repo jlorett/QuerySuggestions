@@ -8,7 +8,7 @@
         android:background="@drawable/widget_search_bar"
         android:elevation="4dp">
 
-    <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+    <AutoCompleteTextView
             android:id="@+id/searchBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -22,7 +22,7 @@
             android:imeOptions="actionSearch"
             android:dropDownAnchor="@id/search_container"/>
 
-    <androidx.appcompat.widget.AppCompatImageButton
+    <ImageButton
             android:id="@+id/clearQuery"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
